@@ -11,19 +11,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.weatherproject.ui.theme.WeatherProjectTheme
 import androidx.compose.foundation.Image
+import androidx.compose.material3.Button
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
-
-
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 
 class MainActivity : ComponentActivity() {
@@ -31,33 +33,49 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             WeatherProjectTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    WeatherProjectScreen()
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "main"){
+                    composable("main"){ WeatherProjectScreen(navController) }
+                    composable("forecast") { ForecastScreen() }
                 }
+                 //Surface(
+                   // modifier = Modifier.fillMaxSize(),
+                   // color = MaterialTheme.colorScheme.background
+               // ) {
+                  //  WeatherProjectScreen()
+               // }
             }
         }
     }
 }
 @Composable
-fun WeatherProjectScreen() {
+fun WeatherProjectScreen(navController: NavHostController) {
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Top){
-        WeatherProjectTitle()
+        WeatherProjectTitle("Weather Project")
         WeatherProjectBox()
         WeatherProjectStats()
         Spacer(modifier =  Modifier.height(16.dp))
         WeatherProjectContext()
+        Spacer(modifier = Modifier.weight(1f))
+        Button(
+            onClick = { navController.navigate("forecast") },
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ){
+                Text(
+                    text = "Forecast"
+                )
+        }
+        //)
+        //ForecastScreen()
     }
 }
 
 @Composable
-fun WeatherProjectTitle(){
+fun WeatherProjectTitle(title: String) {
     val tealColor = colorResource(id = R.color.teal_700)
     Surface(modifier = Modifier.fillMaxWidth(), color = tealColor) {
         Text(
-            text = "Weather Project",
+            text = title,
             modifier = Modifier.padding(1.dp)
         )
     }
@@ -83,11 +101,11 @@ fun WeatherProjectStats() {
 
             )
             Text(
-                    text = "$feelsLike $degreeSymbol",
-                    modifier = Modifier
-                        .size(200.dp, 60.dp)
-                        .padding(16.dp),
-                    fontSize = 14.sp
+                text = "$feelsLike $degreeSymbol",
+                modifier = Modifier
+                    .size(200.dp, 60.dp)
+                    .padding(16.dp),
+                fontSize = 14.sp
             )
         }
         Image(
@@ -119,20 +137,27 @@ fun WeatherProjectContext() {
 
 @Composable
 fun WeatherProjectBox() {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment =  Alignment.TopCenter
-    ) {
-        Text(
-            text = stringResource(id = R.string.location_name),
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment =  Alignment.TopCenter
+        ) {
+            Text(
+                text = stringResource(id = R.string.location_name),
+            )
+        }
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewWeatherProjectApplication() {
-    WeatherProjectTheme {
-        WeatherProjectScreen()
+    @Preview(showBackground = true)
+    @Composable
+    fun PreviewWeatherProjectApplication() {
+        WeatherProjectTheme {
+            val navController = rememberNavController()
+            NavHost(navController = navController, startDestination = "main") {
+                composable("main") { WeatherProjectScreen(navController) }
+                composable("forecast") { ForecastScreen() }
+            }
+        }
+
     }
-}
+
+
