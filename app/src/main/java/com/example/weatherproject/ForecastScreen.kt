@@ -4,84 +4,100 @@ package com.example.weatherproject
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.rememberImagePainter
+import com.example.weatherproject.ui.theme.ForecastItem
+import java.text.SimpleDateFormat
+import java.util.*
 
 
-data class DayForecast(
-    val day: String,
-    val forecastTemperature: ForecastTemp,
-    val sunrise: String,
-    val sunset: String)
-
-data class ForecastTemp(
-    val minTemp: Double,
-    val maxTemp: Double)
 
 
 @Composable
-fun ForecastScreen() {
-    val forecastItems = listOf(
-        DayForecast("June 5", ForecastTemp(12.5, 5.8), "5:42 AM", "7:25 PM"),
-        DayForecast("June 6", ForecastTemp(19.0, 26.8), "5:29 AM", "6:45 PM"),
-        DayForecast("June 7", ForecastTemp(22.6, 40.7), "6:34 AM", "7:55 PM"),
-        DayForecast("June 8", ForecastTemp(4.5, 20.0), "5:28 AM", "7:23 PM"),
-        DayForecast("June 9", ForecastTemp(66.7, 54.2), "6:45 AM", "6:30 PM"),
-        DayForecast("June 10", ForecastTemp(34.6, 12.5), "6:55 AM", "6:47 PM"),
-        DayForecast("June 11", ForecastTemp(29.0, 16.7), "5:45 AM", "6:29 PM"),
-        DayForecast("June 12", ForecastTemp(30.0, 29.3), "5:30 AM", "6:52 PM"),
-        DayForecast("June 13", ForecastTemp(21.5, 45.7), "5:28 AM", "6:59 PM"),
-        DayForecast("June 14", ForecastTemp(10.2, 34.6), "6:22 AM", "7:00 PM"),
-        DayForecast("June 15", ForecastTemp(72.1, 5.8), "6:42 AM", "7:25 PM"),
-        DayForecast("June 16", ForecastTemp(25.2, 12.9), "5:20 AM", "7:18 PM"),
-        DayForecast("June 17", ForecastTemp(38.3, 8.8), "6:22 AM", "6:27 PM"),
-        DayForecast("June 18", ForecastTemp(26.6, 30.6), "6:05 AM", "6:41 PM"),
-        DayForecast("June 19", ForecastTemp(13.9, 33.3), "5:26 AM", "7:50 PM"),
-        DayForecast("June 20", ForecastTemp(40.7, 22.2), "6:37 AM", "7:25 PM"),
-    )
-    Column {
-        forecastItems.forEach { forecast ->
-            ForecastRow(forecast)
-        }
+fun ForecastScreen(zipCode: String){
+    val forecastViewModel: ForecastViewModel = hiltViewModel()
+    val forecastState by forecastViewModel.forecastState.observeAsState()
+    val safeForecastState = forecastState ?: ForecastViewModel.ForecastState.Loading
+    val cnt = 5
+
+    LaunchedEffect(forecastViewModel){
+        forecastViewModel.getForecastData(zipCode, cnt)
     }
-}
 
-@Composable
-fun ForecastRow(dayForecast: DayForecast) {
-    Row(modifier = Modifier.padding(16.dp)) {
+    Column{
+        Box(modifier = Modifier.fillMaxWidth().height(56.dp).background(Color.Yellow)) {
+            Text("Forecast", modifier = Modifier.align(Alignment.CenterStart).padding(start = 8.dp), fontSize = 24.sp )
+        }
+        when (safeForecastState) {
+            is ForecastViewModel.ForecastState.Loading ->{
+                Text(text = "Loading...", fontSize = 20.sp, textAlign = TextAlign.Center)
+            }
 
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Row(modifier = Modifier.padding(16.dp)) {
-                Image(
-                    painter = painterResource(id = R.drawable.weathericon),
-                    contentDescription = null,
-                    modifier = Modifier.size(50.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(text = "${dayForecast.day}")
-                    Text(text = "Temp: ${dayForecast.forecastTemperature.maxTemp}°F")
-                    Text(text = "Sunrise: ${dayForecast.sunrise}")
-                    Text(text = "High: ${dayForecast.forecastTemperature.maxTemp}°F Low: ${dayForecast.forecastTemperature.minTemp}°F")
-                    Text(text = "Sunset: ${dayForecast.sunset}")
+            is ForecastViewModel.ForecastState.Success ->{
+                val forecastData = (safeForecastState as ForecastViewModel.ForecastState.Success).forecastData
+                val forecastItems = forecastData.forecasts
+
+                LazyColumn{
+                    items(forecastItems){ forecastItem ->
+                        ForeCastRow(forecastItem)
+                    }
                 }
             }
 
+            is ForecastViewModel.ForecastState.Error ->{
+                val error = (safeForecastState).error
+                Text(text = "Error: $error", fontSize = 20.sp, color = Color.Red)
+            }
+        }
+
+    }
+}
+
+@Composable
+fun ForeCastRow(forecast: ForecastItem){
+    Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+        Image(
+            painter = rememberImagePainter(forecast.iconUrl),
+            contentDescription = stringResource(id = R.string.weather_icon),
+            modifier = Modifier.size(50.dp)
+        )
+        Text(
+            text = SimpleDateFormat("MMM dd", Locale.getDefault()).format(forecast.date),
+            fontSize = 20.sp
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally){
+            Text(text = "High: ${forecast.temp?.max}°", fontSize = 16.sp)
+            Text(text = "Low: ${forecast.temp?.min}°", fontSize = 16.sp)
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "Sunrise: ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(forecast.sunriseTime)}",
+                fontSize = 16.sp
+            )
+            Text(
+                text = "Sunset: ${SimpleDateFormat("hh:mm a", Locale.getDefault()).format(forecast.sunsetTime)}",
+                fontSize = 16.sp
+            )
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewForecastScreen() {
-    ForecastScreen()
-}
